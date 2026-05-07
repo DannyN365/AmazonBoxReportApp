@@ -742,8 +742,13 @@ def create_excel_file():
     df = pd.DataFrame(flatten_pallet_rows())
 
     output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Pallets")
+    try:
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Pallets")
+    except ModuleNotFoundError as exc:
+        if exc.name == "openpyxl":
+            raise RuntimeError("Excel export requires the openpyxl package to be installed.") from exc
+        raise
 
     output.seek(0)
     return output
@@ -954,16 +959,21 @@ with left_col:
 
     if st.session_state.pallets:
         summary_text = build_summary_text()
-        excel_file = create_excel_file()
+        try:
+            excel_file = create_excel_file()
+        except RuntimeError as exc:
+            st.warning(str(exc))
+            excel_file = None
 
-        st.download_button(
-            label="Download Excel file",
-            data=excel_file,
-            file_name="pallet_report.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            type="primary",
-            use_container_width=True,
-        )
+        if excel_file is not None:
+            st.download_button(
+                label="Download Excel file",
+                data=excel_file,
+                file_name="pallet_report.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                type="primary",
+                use_container_width=True,
+            )
 
         st.download_button(
             label="Download summary text",
