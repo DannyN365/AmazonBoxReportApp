@@ -1,3 +1,4 @@
+from datetime import date
 from io import BytesIO
 import re
 
@@ -754,6 +755,20 @@ def create_excel_file():
     return output
 
 
+def build_excel_filename():
+    first_comment = st.session_state.pallets[0].get("Pallet comment", "").strip()
+    safe_comment = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "", first_comment).strip().rstrip(".")
+
+    if not safe_comment:
+        safe_comment = "pallet_report"
+
+    pallet_count = len(st.session_state.pallets)
+    pallet_label = "pallet" if pallet_count == 1 else "pallets"
+    today_label = date.today().isoformat()
+
+    return f"{safe_comment} {pallet_count} {pallet_label} {today_label}.xlsx"
+
+
 def total_weight():
     return sum(float(pallet["Weight kg"]) for pallet in st.session_state.pallets)
 
@@ -969,7 +984,7 @@ with left_col:
             st.download_button(
                 label="Download Excel file",
                 data=excel_file,
-                file_name="pallet_report.xlsx",
+                file_name=build_excel_filename(),
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 type="primary",
                 use_container_width=True,
