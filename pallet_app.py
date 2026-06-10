@@ -633,6 +633,10 @@ def get_next_pallet_number():
 
 
 def get_current_pallet_number():
+    active_pallet_nr = st.session_state.get("active_pallet_nr")
+    if isinstance(active_pallet_nr, int) and active_pallet_nr >= 1:
+        return active_pallet_nr
+
     pallet_nr, error = parse_optional_int_field(st.session_state.input_pallet_nr, default_value=1)
     if error or pallet_nr < 1:
         return 1
@@ -674,23 +678,7 @@ def initialize_pallet_form_widgets(default_pallet_nr=None):
         "pallet_form_height",
         "pallet_form_comment",
     ]
-    widget_values_match_inputs = (
-        st.session_state.get("pallet_form_pallet_nr") == (st.session_state.input_pallet_nr or str(default_pallet_nr or 1))
-        and st.session_state.get("pallet_form_weight", "") == (
-            st.session_state.input_weight if str(st.session_state.input_weight).strip() not in ("", "0", "0.0") else ""
-        )
-        and st.session_state.get("pallet_form_length") == (st.session_state.input_length or 120)
-        and st.session_state.get("pallet_form_width") == (st.session_state.input_width or 80)
-        and st.session_state.get("pallet_form_height", "") == (
-            st.session_state.input_height if str(st.session_state.input_height).strip() not in ("", "0") else ""
-        )
-        and st.session_state.get("pallet_form_comment", "") == st.session_state.input_pallet_comment
-    )
-    needs_refresh = (
-        st.session_state.refresh_pallet_form_widgets
-        or any(key not in st.session_state for key in widget_keys)
-        or not widget_values_match_inputs
-    )
+    needs_refresh = st.session_state.refresh_pallet_form_widgets or any(key not in st.session_state for key in widget_keys)
     if not needs_refresh:
         return
 
@@ -720,6 +708,12 @@ def get_active_pallet_index_for_details(default_pallet_nr):
     if st.session_state.editing_pallet_index is not None:
         return st.session_state.editing_pallet_index
 
+    active_pallet_nr = st.session_state.get("active_pallet_nr")
+    if isinstance(active_pallet_nr, int) and active_pallet_nr >= 1:
+        active_index = find_pallet_index_by_number(active_pallet_nr)
+        if active_index is not None:
+            return active_index
+
     return find_pallet_index_by_number(default_pallet_nr)
 
 
@@ -742,6 +736,8 @@ def save_pallet(pallet_data, index=None, box_index=None):
     else:
         st.session_state.pallets[index].update(pallet_header)
         st.session_state.pallets[index]["items"][box_index] = box_line
+
+    st.session_state.active_pallet_nr = pallet_header["Pallet nr"]
 
     st.session_state.pending_pallet_details = {
         "input_pallet_nr": format_form_value(pallet_header["Pallet nr"]),
@@ -776,8 +772,9 @@ def save_pallet_details(pallet_header, start_next=False, index=None):
             st.session_state.pallets[existing_index].update(pallet_header)
 
     if start_next:
+        next_pallet_nr = get_next_pallet_number()
         st.session_state.pending_pallet_details = {
-            "input_pallet_nr": str(get_next_pallet_number()),
+            "input_pallet_nr": str(next_pallet_nr),
             "input_length": 120,
             "input_width": 80,
             "input_height": "",
@@ -788,6 +785,7 @@ def save_pallet_details(pallet_header, start_next=False, index=None):
         st.session_state.entry_mode = "box"
         st.session_state.editing_pallet_index = None
         st.session_state.refresh_pallet_form_widgets = True
+        st.session_state.active_pallet_nr = next_pallet_nr
     else:
         st.session_state.pending_pallet_details = {
             "input_pallet_nr": format_form_value(pallet_header["Pallet nr"]),
@@ -801,13 +799,15 @@ def save_pallet_details(pallet_header, start_next=False, index=None):
         st.session_state.entry_mode = "pallet"
         st.session_state.editing_pallet_index = None
         st.session_state.refresh_pallet_form_widgets = True
+        st.session_state.active_pallet_nr = pallet_header["Pallet nr"]
 
     st.session_state.pending_clear_form = True
 
 
 def start_next_pallet():
+    next_pallet_nr = get_next_pallet_number()
     st.session_state.pending_pallet_details = {
-        "input_pallet_nr": str(get_next_pallet_number()),
+        "input_pallet_nr": str(next_pallet_nr),
         "input_length": 120,
         "input_width": 80,
         "input_height": "",
@@ -818,6 +818,7 @@ def start_next_pallet():
     st.session_state.entry_mode = "box"
     st.session_state.editing_pallet_index = None
     st.session_state.pending_clear_form = True
+    st.session_state.active_pallet_nr = next_pallet_nr
 
 
 def clear_form(keep_pallet_details=None, next_box_numbers=""):
@@ -836,6 +837,10 @@ def clear_form(keep_pallet_details=None, next_box_numbers=""):
     st.session_state.editing_box_index = None
     st.session_state.editing_pallet_index = None
 
+    pallet_nr, error = parse_optional_int_field(str(st.session_state.input_pallet_nr), default_value=1)
+    if not error and pallet_nr >= 1:
+        st.session_state.active_pallet_nr = pallet_nr
+
 
 def reset_app_state():
     st.session_state.pallets = []
@@ -847,6 +852,7 @@ def reset_app_state():
     st.session_state.entry_mode = "box"
     st.session_state.editing_pallet_index = None
     st.session_state.refresh_pallet_form_widgets = True
+    st.session_state.active_pallet_nr = 1
 
     for key, value in SESSION_DEFAULTS.items():
         st.session_state[key] = value
@@ -882,6 +888,7 @@ def load_box_line_for_edit(index, box_index):
     st.session_state.editing_index = index
     st.session_state.editing_box_index = box_index
     st.session_state.editing_pallet_index = None
+    st.session_state.active_pallet_nr = pallet["Pallet nr"]
 
 
 def load_pallet_details_for_edit(index):
@@ -898,6 +905,7 @@ def load_pallet_details_for_edit(index):
     st.session_state.editing_pallet_index = index
     st.session_state.entry_mode = "pallet"
     st.session_state.refresh_pallet_form_widgets = True
+    st.session_state.active_pallet_nr = pallet["Pallet nr"]
 
 
 def flatten_pallet_rows():
@@ -1192,6 +1200,9 @@ if "editing_pallet_index" not in st.session_state:
 
 if "refresh_pallet_form_widgets" not in st.session_state:
     st.session_state.refresh_pallet_form_widgets = True
+
+if "active_pallet_nr" not in st.session_state:
+    st.session_state.active_pallet_nr = 1
 
 
 for key, value in SESSION_DEFAULTS.items():
@@ -1554,6 +1565,7 @@ with right_col:
             switch_col1, switch_col2 = st.columns([1, 1])
             with switch_col1:
                 if st.button("Ready to add pallet details", type="primary", use_container_width=True):
+                    st.session_state.editing_pallet_index = find_pallet_index_by_number(current_pallet_nr)
                     st.session_state.entry_mode = "pallet"
                     st.session_state.refresh_pallet_form_widgets = True
                     ensure_visible_pallet_defaults(current_pallet_nr)
