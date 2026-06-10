@@ -674,7 +674,23 @@ def initialize_pallet_form_widgets(default_pallet_nr=None):
         "pallet_form_height",
         "pallet_form_comment",
     ]
-    needs_refresh = st.session_state.refresh_pallet_form_widgets or any(key not in st.session_state for key in widget_keys)
+    widget_values_match_inputs = (
+        st.session_state.get("pallet_form_pallet_nr") == (st.session_state.input_pallet_nr or str(default_pallet_nr or 1))
+        and st.session_state.get("pallet_form_weight", "") == (
+            st.session_state.input_weight if str(st.session_state.input_weight).strip() not in ("", "0", "0.0") else ""
+        )
+        and st.session_state.get("pallet_form_length") == (st.session_state.input_length or 120)
+        and st.session_state.get("pallet_form_width") == (st.session_state.input_width or 80)
+        and st.session_state.get("pallet_form_height", "") == (
+            st.session_state.input_height if str(st.session_state.input_height).strip() not in ("", "0") else ""
+        )
+        and st.session_state.get("pallet_form_comment", "") == st.session_state.input_pallet_comment
+    )
+    needs_refresh = (
+        st.session_state.refresh_pallet_form_widgets
+        or any(key not in st.session_state for key in widget_keys)
+        or not widget_values_match_inputs
+    )
     if not needs_refresh:
         return
 
@@ -764,6 +780,7 @@ def save_pallet_details(pallet_header, start_next=False, index=None):
         st.session_state.pending_box_numbers = get_next_global_box_suggestion()
         st.session_state.entry_mode = "box"
         st.session_state.editing_pallet_index = None
+        st.session_state.refresh_pallet_form_widgets = True
     else:
         st.session_state.pending_pallet_details = {
             "input_pallet_nr": format_form_value(pallet_header["Pallet nr"]),
@@ -1531,6 +1548,7 @@ with right_col:
             with switch_col1:
                 if st.button("Ready to add pallet details", type="primary", use_container_width=True):
                     st.session_state.entry_mode = "pallet"
+                    st.session_state.refresh_pallet_form_widgets = True
                     ensure_visible_pallet_defaults(current_pallet_nr)
                     persist_and_rerun()
             with switch_col2:
