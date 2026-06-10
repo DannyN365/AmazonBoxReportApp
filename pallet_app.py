@@ -716,6 +716,13 @@ def sync_inputs_from_pallet_form_widgets():
     st.session_state.input_pallet_comment = st.session_state.pallet_form_comment
 
 
+def get_active_pallet_index_for_details(default_pallet_nr):
+    if st.session_state.editing_pallet_index is not None:
+        return st.session_state.editing_pallet_index
+
+    return find_pallet_index_by_number(default_pallet_nr)
+
+
 def save_pallet(pallet_data, index=None, box_index=None):
     pallet_header, box_line = split_pallet_data(pallet_data)
 
@@ -730,7 +737,7 @@ def save_pallet(pallet_data, index=None, box_index=None):
                 }
             )
         else:
-            st.session_state.pallets[existing_index].update(pallet_header)
+            # Box entry should not overwrite already-saved pallet details with hidden defaults.
             st.session_state.pallets[existing_index]["items"].append(box_line)
     else:
         st.session_state.pallets[index].update(pallet_header)
@@ -1637,7 +1644,10 @@ with right_col:
                     if error:
                         st.warning(error)
                     else:
-                        save_pallet_details(pallet_header, index=st.session_state.editing_pallet_index)
+                        save_pallet_details(
+                            pallet_header,
+                            index=get_active_pallet_index_for_details(current_pallet_nr),
+                        )
                         persist_and_rerun()
 
                 if save_and_next:
@@ -1649,7 +1659,7 @@ with right_col:
                         save_pallet_details(
                             pallet_header,
                             start_next=True,
-                            index=st.session_state.editing_pallet_index,
+                            index=get_active_pallet_index_for_details(current_pallet_nr),
                         )
                         persist_and_rerun()
 
