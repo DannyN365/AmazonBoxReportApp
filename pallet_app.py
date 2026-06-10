@@ -1617,7 +1617,7 @@ with right_col:
                 with size_col2:
                     st.number_input("Width", min_value=0, step=1, key="pallet_form_width")
 
-                st.text_input("Height", placeholder="Example: 161", key="pallet_form_height")
+                st.text_input("Height", placeholder="Amazon MAX 180 cm", key="pallet_form_height")
 
                 st.text_area(
                     "Pallet comment",
