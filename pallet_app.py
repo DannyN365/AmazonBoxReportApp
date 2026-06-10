@@ -1,6 +1,9 @@
 from datetime import date
 from io import BytesIO
+import json
+from pathlib import Path
 import re
+from uuid import uuid4
 
 import pandas as pd
 import streamlit as st
@@ -9,6 +12,114 @@ st.set_page_config(
     page_title="Pallet Report",
     layout="wide",
 )
+
+LEGACY_STATE_FILE = Path(__file__).with_name(".pallet_report_state.json")
+STATE_DIR = Path(__file__).with_name(".pallet_report_state")
+DRAFT_QUERY_PARAM = "draft"
+SESSION_DEFAULTS = {
+    "input_operator_name": "",
+    "input_pallet_nr": "1",
+    "input_length": 120,
+    "input_width": 80,
+    "input_height": "",
+    "input_weight": "",
+    "input_pallet_comment": "",
+    "input_box_numbers": "",
+    "input_pcs_per_box": "",
+    "input_art_nr": "",
+    "input_comment": "",
+}
+PERSISTED_SESSION_KEYS = [
+    "pallets",
+    "editing_index",
+    "editing_box_index",
+    "pending_clear_form",
+    "pending_pallet_details",
+    "pending_box_numbers",
+    "entry_mode",
+    "editing_pallet_index",
+    "refresh_pallet_form_widgets",
+    *SESSION_DEFAULTS.keys(),
+]
+
+
+def normalize_draft_key(raw_value):
+    if not raw_value:
+        return None
+
+    normalized = re.sub(r"[^a-zA-Z0-9_-]", "", str(raw_value)).strip()
+    if not normalized:
+        return None
+
+    return normalized[:80]
+
+
+def ensure_draft_key():
+    draft_key = normalize_draft_key(st.query_params.get(DRAFT_QUERY_PARAM))
+    if not draft_key:
+        draft_key = uuid4().hex
+        st.query_params[DRAFT_QUERY_PARAM] = draft_key
+
+    st.session_state.draft_key = draft_key
+    return draft_key
+
+
+def get_state_file_path():
+    draft_key = st.session_state.get("draft_key") or ensure_draft_key()
+    return STATE_DIR / f"{draft_key}.json"
+
+
+def load_persisted_state():
+    state_file = get_state_file_path()
+    source_file = state_file
+
+    if not state_file.exists() and LEGACY_STATE_FILE.exists():
+        source_file = LEGACY_STATE_FILE
+
+    if not source_file.exists():
+        return {}
+
+    try:
+        with source_file.open("r", encoding="utf-8") as persisted_file:
+            state = json.load(persisted_file)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    if not isinstance(state, dict):
+        return {}
+
+    return state
+
+
+def restore_persisted_session_state():
+    persisted_state = load_persisted_state()
+    if not persisted_state:
+        return
+
+    for key in PERSISTED_SESSION_KEYS:
+        if key in persisted_state and key not in st.session_state:
+            st.session_state[key] = persisted_state[key]
+
+
+def persist_session_state():
+    persisted_state = {}
+
+    for key in PERSISTED_SESSION_KEYS:
+        if key in st.session_state:
+            persisted_state[key] = st.session_state[key]
+
+    try:
+        state_file = get_state_file_path()
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        with state_file.open("w", encoding="utf-8") as persisted_file:
+            json.dump(persisted_state, persisted_file, ensure_ascii=True, indent=2)
+    except OSError:
+        pass
+
+
+def persist_and_rerun():
+    persist_session_state()
+    st.rerun()
 
 
 def inject_styles():
@@ -182,6 +293,93 @@ def inject_styles():
             .summary-help {
                 font-size: 0.9rem;
                 opacity: 0.75;
+            }
+
+            .purge-flash {
+                position: fixed;
+                left: 50%;
+                top: 1.1rem;
+                transform: translateX(-50%);
+                width: min(760px, calc(100vw - 2rem));
+                z-index: 9999;
+                pointer-events: none;
+                animation: purge-fade 1.9s ease forwards;
+            }
+
+            .purge-flash-card {
+                border-radius: 24px;
+                overflow: hidden;
+                border: 1px solid rgba(254, 202, 202, 0.42);
+                box-shadow: 0 22px 56px rgba(127, 29, 29, 0.32);
+                background:
+                    radial-gradient(circle at top, rgba(255, 237, 213, 0.22), transparent 42%),
+                    linear-gradient(135deg, rgba(127, 29, 29, 0.94), rgba(194, 65, 12, 0.95));
+            }
+
+            .purge-flash-top {
+                padding: 1rem 1.2rem 0.55rem;
+                color: #fff7ed;
+            }
+
+            .purge-flash-title {
+                font-size: 1.15rem;
+                font-weight: 800;
+                letter-spacing: -0.02em;
+            }
+
+            .purge-flash-copy {
+                margin-top: 0.2rem;
+                opacity: 0.92;
+            }
+
+            .purge-flash-fireline {
+                height: 34px;
+                display: flex;
+                align-items: flex-end;
+                justify-content: space-between;
+                padding: 0 0.8rem 0.35rem;
+                font-size: 1.3rem;
+                animation: purge-sweep 1s ease-out forwards;
+                transform-origin: left center;
+            }
+
+            .purge-flash-ash {
+                padding: 0.5rem 1.2rem 0.95rem;
+                color: rgba(255, 247, 237, 0.9);
+                font-size: 0.92rem;
+            }
+
+            @keyframes purge-sweep {
+                0% {
+                    transform: scaleX(0.35) translateX(-14%);
+                    opacity: 0;
+                }
+                30% {
+                    opacity: 1;
+                }
+                100% {
+                    transform: scaleX(1) translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            @keyframes purge-fade {
+                0% {
+                    opacity: 0;
+                    transform: translateX(-50%) translateY(-10px) scale(0.97);
+                }
+                12% {
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0) scale(1);
+                }
+                78% {
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0) scale(1);
+                }
+                100% {
+                    opacity: 0;
+                    transform: translateX(-50%) translateY(-10px) scale(0.985);
+                }
             }
 
             .section-note {
@@ -615,6 +813,34 @@ def clear_form(keep_pallet_details=None, next_box_numbers=""):
     st.session_state.editing_pallet_index = None
 
 
+def reset_app_state():
+    st.session_state.pallets = []
+    st.session_state.editing_index = None
+    st.session_state.editing_box_index = None
+    st.session_state.pending_clear_form = False
+    st.session_state.pending_pallet_details = {}
+    st.session_state.pending_box_numbers = ""
+    st.session_state.entry_mode = "box"
+    st.session_state.editing_pallet_index = None
+    st.session_state.refresh_pallet_form_widgets = True
+
+    for key, value in SESSION_DEFAULTS.items():
+        st.session_state[key] = value
+
+    st.session_state.pallet_form_pallet_nr = "1"
+    st.session_state.pallet_form_weight = ""
+    st.session_state.pallet_form_length = 120
+    st.session_state.pallet_form_width = 80
+    st.session_state.pallet_form_height = ""
+    st.session_state.pallet_form_comment = ""
+    st.session_state.show_purge_flash = True
+
+
+def handle_reset_click():
+    reset_app_state()
+    persist_session_state()
+
+
 def load_box_line_for_edit(index, box_index):
     pallet = st.session_state.pallets[index]
     box_line = pallet["items"][box_index]
@@ -669,6 +895,53 @@ def flatten_pallet_rows():
                     "Comment": box_line["Comment"],
                 }
             )
+
+    return rows
+
+
+def flatten_pallet_rows_for_export():
+    rows = []
+    today_label = date.today().isoformat()
+    blank_row = {
+        "Pallet nr": None,
+        "Length cm": None,
+        "Width cm": None,
+        "Height cm": None,
+        "Weight kg": None,
+        "Pallet comment": None,
+        "Box numbers": None,
+        "Pcs / box": None,
+        "Art. nr": None,
+        "Date": None,
+        "Comment": None,
+        "Initials / name": None,
+    }
+
+    for pallet_index, pallet in enumerate(st.session_state.pallets):
+        box_lines = pallet["items"] or [None]
+
+        for box_index, box_line in enumerate(box_lines):
+            is_first_line_of_pallet = box_index == 0
+            is_first_export_row = len(rows) == 0
+            rows.append(
+                {
+                    "Pallet nr": pallet["Pallet nr"] if is_first_line_of_pallet else None,
+                    "Length cm": pallet["Length cm"] if is_first_line_of_pallet else None,
+                    "Width cm": pallet["Width cm"] if is_first_line_of_pallet else None,
+                    "Height cm": pallet["Height cm"] if is_first_line_of_pallet else None,
+                    "Weight kg": pallet["Weight kg"] if is_first_line_of_pallet else None,
+                    "Pallet comment": pallet.get("Pallet comment", "") if is_first_line_of_pallet else None,
+                    "Box numbers": box_line["Box numbers"] if box_line else None,
+                    "Pcs / box": box_line["Pcs / box"] if box_line else None,
+                    "Art. nr": box_line["Art. nr"] if box_line else None,
+                    "Date": today_label if is_first_export_row else None,
+                    "Comment": box_line["Comment"] if box_line else None,
+                    "Initials / name": st.session_state.input_operator_name.strip() if is_first_export_row else None,
+                }
+            )
+
+        if pallet_index < len(st.session_state.pallets) - 1:
+            rows.append(blank_row.copy())
 
     return rows
 
@@ -740,7 +1013,7 @@ def normalize_pallets():
 
 
 def create_excel_file():
-    df = pd.DataFrame(flatten_pallet_rows())
+    df = pd.DataFrame(flatten_pallet_rows_for_export())
 
     output = BytesIO()
     try:
@@ -756,7 +1029,9 @@ def create_excel_file():
 
 
 def build_excel_filename():
+    operator_name = st.session_state.input_operator_name.strip()
     first_comment = st.session_state.pallets[0].get("Pallet comment", "").strip()
+    safe_operator_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "", operator_name).strip().rstrip(".")
     safe_comment = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "", first_comment).strip().rstrip(".")
 
     if not safe_comment:
@@ -766,7 +1041,11 @@ def build_excel_filename():
     pallet_label = "pallet" if pallet_count == 1 else "pallets"
     today_label = date.today().isoformat()
 
-    return f"{safe_comment} {pallet_count} {pallet_label} {today_label}.xlsx"
+    filename = f"{safe_comment} {pallet_count} {pallet_label} {today_label}"
+    if safe_operator_name:
+        filename = f"{filename} {safe_operator_name}"
+
+    return f"{filename}.xlsx"
 
 
 def total_weight():
@@ -843,6 +1122,26 @@ def summary_card(label, value, help_text):
     )
 
 
+def render_purge_flash():
+    st.markdown(
+        """
+        <div class="purge-flash">
+            <div class="purge-flash-card">
+                <div class="purge-flash-top">
+                    <div class="purge-flash-title">Purge complete</div>
+                    <div class="purge-flash-copy">The pallet draft has been burned down to clean ashes.</div>
+                </div>
+                <div class="purge-flash-fireline">🔥 🔥 🔥 🔥 🔥 🔥 🔥 🔥 🔥</div>
+                <div class="purge-flash-ash">Fresh start mode activated.</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+ensure_draft_key()
+restore_persisted_session_state()
+
 if "pallets" not in st.session_state:
     st.session_state.pallets = []
 
@@ -871,20 +1170,7 @@ if "refresh_pallet_form_widgets" not in st.session_state:
     st.session_state.refresh_pallet_form_widgets = True
 
 
-default_values = {
-    "input_pallet_nr": "1",
-    "input_length": 120,
-    "input_width": 80,
-    "input_height": "",
-    "input_weight": "",
-    "input_pallet_comment": "",
-    "input_box_numbers": "",
-    "input_pcs_per_box": "",
-    "input_art_nr": "",
-    "input_comment": "",
-}
-
-for key, value in default_values.items():
+for key, value in SESSION_DEFAULTS.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
@@ -909,6 +1195,10 @@ if st.session_state.editing_index is not None:
 
 inject_styles()
 
+if st.session_state.get("show_purge_flash"):
+    render_purge_flash()
+    st.session_state.show_purge_flash = False
+
 st.markdown(
     """
     <div class="hero-panel">
@@ -917,9 +1207,16 @@ st.markdown(
         <p class="hero-text">
             Add pallet details, review the list, and export everything to Excel when it is ready.
         </p>
+        <p class="hero-text">Your current draft is saved automatically and restored after a refresh.</p>
     </div>
     """,
     unsafe_allow_html=True,
+)
+
+st.text_input(
+    "Initials / name",
+    placeholder="",
+    key="input_operator_name",
 )
 
 overview_col1, overview_col2, overview_col3 = st.columns(3)
@@ -938,6 +1235,13 @@ st.markdown(
 left_col, right_col = st.columns([0.8, 2.4], gap="large")
 
 with left_col:
+    st.button(
+        "Reset all form data",
+        type="primary",
+        use_container_width=True,
+        on_click=handle_reset_click,
+    )
+
     st.markdown(
         """
         <div class="side-panel">
@@ -1080,7 +1384,7 @@ with right_col:
                 with action_head_col1:
                     if st.button("Edit pallet", key=f"edit_pallet_{i}", use_container_width=True):
                         load_pallet_details_for_edit(i)
-                        st.rerun()
+                        persist_and_rerun()
                 with action_head_col2:
                     st.write("")
 
@@ -1108,21 +1412,21 @@ with right_col:
                     with row_col5:
                         if st.button("Edit row", key=f"edit_{i}_{box_i}", use_container_width=True):
                             load_box_line_for_edit(i, box_i)
-                            st.rerun()
+                            persist_and_rerun()
 
                         if st.button("Delete row", key=f"delete_{i}_{box_i}", use_container_width=True):
                             st.session_state.pallets[i]["items"].pop(box_i)
                             if not st.session_state.pallets[i]["items"]:
                                 st.session_state.pallets.pop(i)
                             clear_form()
-                            st.rerun()
+                            persist_and_rerun()
 
                     st.divider()
 
                 if st.button("Remove whole pallet", key=f"delete_pallet_{i}", use_container_width=True):
                     st.session_state.pallets.pop(i)
                     clear_form()
-                    st.rerun()
+                    persist_and_rerun()
         else:
             st.info("No pallets added yet. Start with the form below.")
 
@@ -1215,20 +1519,20 @@ with right_col:
                             st.session_state.editing_index,
                             st.session_state.editing_box_index,
                         )
-                        st.rerun()
+                        persist_and_rerun()
 
             if st.button("Clear box fields", use_container_width=True, key="clear_box_fields_button"):
                 st.session_state.pending_pallet_details = capture_pallet_detail_inputs()
                 st.session_state.pending_box_numbers = ""
                 st.session_state.pending_clear_form = True
-                st.rerun()
+                persist_and_rerun()
 
             switch_col1, switch_col2 = st.columns([1, 1])
             with switch_col1:
                 if st.button("Ready to add pallet details", type="primary", use_container_width=True):
                     st.session_state.entry_mode = "pallet"
                     ensure_visible_pallet_defaults(current_pallet_nr)
-                    st.rerun()
+                    persist_and_rerun()
             with switch_col2:
                 st.caption("Use this when all box rows for the current pallet are entered.")
 
@@ -1316,7 +1620,7 @@ with right_col:
                         st.warning(error)
                     else:
                         save_pallet_details(pallet_header, index=st.session_state.editing_pallet_index)
-                        st.rerun()
+                        persist_and_rerun()
 
                 if save_and_next:
                     sync_inputs_from_pallet_form_widgets()
@@ -1329,13 +1633,13 @@ with right_col:
                             start_next=True,
                             index=st.session_state.editing_pallet_index,
                         )
-                        st.rerun()
+                        persist_and_rerun()
 
                 if back_to_boxes:
                     sync_inputs_from_pallet_form_widgets()
                     st.session_state.editing_pallet_index = None
                     st.session_state.entry_mode = "box"
-                    st.rerun()
+                    persist_and_rerun()
 
 
     if st.session_state.pallets:
@@ -1357,3 +1661,5 @@ with right_col:
                 )
             else:
                 st.info("No box rows added for the current pallet yet.")
+
+persist_session_state()
