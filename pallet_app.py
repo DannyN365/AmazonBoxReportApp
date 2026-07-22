@@ -1127,6 +1127,7 @@ def flatten_rows_for_box_export_with_pending(pallet_nr, pending_box_line=None):
     pallet_index = find_pallet_index_by_number(pallet_nr)
     today_label = date.today().isoformat()
     order_id = st.session_state.input_order_id.strip() or None
+    operator_name = st.session_state.input_operator_name.strip() or None
     pallet = None
     if pallet_index is not None:
         pallet = st.session_state.pallets[pallet_index]
@@ -1140,26 +1141,24 @@ def flatten_rows_for_box_export_with_pending(pallet_nr, pending_box_line=None):
     if not box_lines:
         return rows
 
-    pallet_nr_value = pallet["Pallet nr"] if pallet is not None else pallet_nr
     weight_value = None
     if pallet is not None:
         weight_value = pallet.get("Weight kg")
         if weight_value in ("", None, 0, 0.0):
             weight_value = None
 
-    for box_index, box_line in enumerate(box_lines):
-        is_first_line = box_index == 0
+    for box_line in box_lines:
         rows.append(
             {
-                "Box nr": pallet_nr_value if is_first_line else None,
-                "Weight kg": weight_value if is_first_line else None,
-                "Order ID": order_id if is_first_line else None,
+                "Box nr": box_line["Box numbers"],
+                "Weight kg": weight_value,
+                "Order ID": order_id,
                 "Pcs / box": box_line["Pcs / box"],
                 "Art. nr": box_line["Art. nr"],
                 "Article name": box_line.get("Article name", ""),
-                "Date": today_label if is_first_line else None,
+                "Date": today_label,
                 "Comment": box_line["Comment"] or None,
-                "Initials / name": st.session_state.input_operator_name.strip() if is_first_line else None,
+                "Initials / name": operator_name,
             }
         )
 
