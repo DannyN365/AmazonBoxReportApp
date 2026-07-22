@@ -1,2 +1,5 @@
 .pallet_report_state.json
 .pallet_report_state/
+.env
+lark_fields.json
+.lark_article_catalog_cache.json

@@ -1,10 +1,16 @@
 from datetime import date
+import html
 from io import BytesIO
 import json
 from pathlib import Path
 import re
 from uuid import uuid4
 
+from dotenv import load_dotenv
+from lark_lookup import (
+    load_repo_article_catalog,
+    normalize_article_number,
+)
 import pandas as pd
 import streamlit as st
 
@@ -13,11 +19,15 @@ st.set_page_config(
     layout="wide",
 )
 
+load_dotenv()
+
 LEGACY_STATE_FILE = Path(__file__).with_name(".pallet_report_state.json")
 STATE_DIR = Path(__file__).with_name(".pallet_report_state")
 DRAFT_QUERY_PARAM = "draft"
 SESSION_DEFAULTS = {
     "input_operator_name": "",
+    "input_order_id": "",
+    "order_type": "pallet",
     "input_pallet_nr": "1",
     "input_length": 120,
     "input_width": 80,
@@ -52,6 +62,37 @@ def normalize_draft_key(raw_value):
         return None
 
     return normalized[:80]
+
+
+def is_box_order_mode():
+    return st.session_state.get("order_type") == "box"
+
+
+def handle_order_type_change(previous_order_type):
+    current_order_type = st.session_state.order_type
+    if current_order_type == previous_order_type:
+        return
+
+    st.session_state.entry_mode = "box"
+    st.session_state.editing_pallet_index = None
+    st.session_state.refresh_pallet_form_widgets = True
+
+    if current_order_type == "box":
+        st.session_state.input_pallet_nr = "1"
+        st.session_state.active_pallet_nr = 1
+        st.session_state.pending_pallet_details = {
+            "input_pallet_nr": "1",
+            "input_length": 120,
+            "input_width": 80,
+            "input_height": "",
+            "input_weight": "",
+            "input_pallet_comment": "",
+        }
+    else:
+        if not str(st.session_state.input_pallet_nr).strip():
+            st.session_state.input_pallet_nr = "1"
+
+    persist_and_rerun()
 
 
 def ensure_draft_key():
@@ -426,6 +467,24 @@ def inject_styles():
                 margin-bottom: 0.2rem;
                 opacity: 0.72;
             }
+
+            .lookup-note {
+                font-size: 0.82rem;
+                margin-top: 0.35rem;
+                line-height: 1.35;
+            }
+
+            .lookup-note.info {
+                color: #93c5fd;
+            }
+
+            .lookup-note.success {
+                color: #86efac;
+            }
+
+            .lookup-note.warning {
+                color: #fcd34d;
+            }
         </style>
         """,
         unsafe_allow_html=True,
@@ -444,6 +503,48 @@ def format_form_value(value):
     if isinstance(value, float):
         return f"{value:g}"
     return str(value)
+
+def get_saved_article_name_for_current_row():
+    index = st.session_state.get("editing_index")
+    box_index = st.session_state.get("editing_box_index")
+    if index is None or box_index is None:
+        return ""
+
+    try:
+        return str(st.session_state.pallets[index]["items"][box_index].get("Article name", "")).strip()
+    except (IndexError, KeyError, TypeError, AttributeError):
+        return ""
+
+
+def get_article_name_state(article_number, fallback_name=""):
+    normalized_article_number = normalize_article_number(article_number)
+    if not normalized_article_number:
+        return "", "", "info"
+
+    repo_catalog_payload = load_repo_article_catalog()
+    if repo_catalog_payload:
+        repo_catalog = repo_catalog_payload.get("catalog", {})
+        if isinstance(repo_catalog, dict):
+            article_name = str(repo_catalog.get(normalized_article_number, "")).strip()
+            if article_name:
+                generated_at = str(repo_catalog_payload.get("generated_at", "")).strip()
+                message = "Article name loaded from repo JSON cache."
+                if generated_at:
+                    message = f"Article name loaded from repo JSON cache updated {generated_at}."
+                return article_name, message, "success"
+            return "", "No article name was found for this Art. nr in the repo JSON cache.", "warning"
+    if fallback_name:
+        return fallback_name, "Using the saved article name. No repo JSON cache is available for this Art. nr.", "info"
+    return "", "Article name is only loaded from the repo JSON cache in the main app.", "info"
+
+
+def article_lookup_note_markup(message, tone):
+    if not message:
+        return ""
+
+    safe_message = html.escape(message)
+    safe_tone = tone if tone in {"info", "success", "warning"} else "info"
+    return f'<div class="lookup-note {safe_tone}">{safe_message}</div>'
 
 
 def get_next_box_suggestion(box_text):
@@ -580,10 +681,17 @@ def get_validated_box_line_data():
     if not st.session_state.input_art_nr.strip():
         return None, "Please enter Art. nr."
 
+    saved_article_name = get_saved_article_name_for_current_row()
+    article_name, _, _ = get_article_name_state(
+        st.session_state.input_art_nr,
+        fallback_name=saved_article_name,
+    )
+
     return {
         "Box numbers": parse_box_numbers(st.session_state.input_box_numbers),
         "Pcs / box": pcs_per_box,
-        "Art. nr": st.session_state.input_art_nr.strip(),
+        "Art. nr": normalize_article_number(st.session_state.input_art_nr),
+        "Article name": article_name,
         "Comment": st.session_state.input_comment,
     }, None
 
@@ -613,6 +721,7 @@ def split_pallet_data(pallet_data):
         "Box numbers": pallet_data["Box numbers"],
         "Pcs / box": pallet_data["Pcs / box"],
         "Art. nr": pallet_data["Art. nr"],
+        "Article name": pallet_data.get("Article name", ""),
         "Comment": pallet_data["Comment"],
     }
     return pallet_header, box_line
@@ -924,6 +1033,7 @@ def flatten_pallet_rows():
                     "Box numbers": box_line["Box numbers"],
                     "Pcs / box": box_line["Pcs / box"],
                     "Art. nr": box_line["Art. nr"],
+                    "Article name": box_line.get("Article name", ""),
                     "Comment": box_line["Comment"],
                 }
             )
@@ -944,6 +1054,7 @@ def flatten_pallet_rows_for_export():
         "Box numbers": None,
         "Pcs / box": None,
         "Art. nr": None,
+        "Article name": None,
         "Date": None,
         "Comment": None,
         "Initials / name": None,
@@ -966,6 +1077,7 @@ def flatten_pallet_rows_for_export():
                     "Box numbers": box_line["Box numbers"] if box_line else None,
                     "Pcs / box": box_line["Pcs / box"] if box_line else None,
                     "Art. nr": box_line["Art. nr"] if box_line else None,
+                    "Article name": box_line.get("Article name", "") if box_line else None,
                     "Date": today_label if is_first_export_row else None,
                     "Comment": box_line["Comment"] if box_line else None,
                     "Initials / name": st.session_state.input_operator_name.strip() if is_first_export_row else None,
@@ -988,21 +1100,106 @@ def flatten_rows_for_pallet(pallet_nr):
     pallet = st.session_state.pallets[pallet_index]
     for box_line in pallet["items"]:
         rows.append(
+                {
+                    "Pallet nr": pallet["Pallet nr"],
+                    "Length cm": pallet["Length cm"],
+                    "Width cm": pallet["Width cm"],
+                    "Height cm": pallet["Height cm"],
+                    "Weight kg": pallet["Weight kg"],
+                    "Pallet comment": pallet.get("Pallet comment", ""),
+                    "Box numbers": box_line["Box numbers"],
+                    "Pcs / box": box_line["Pcs / box"],
+                    "Art. nr": box_line["Art. nr"],
+                    "Article name": box_line.get("Article name", ""),
+                    "Comment": box_line["Comment"],
+                }
+            )
+
+    return rows
+
+
+def flatten_rows_for_box_export(pallet_nr):
+    return flatten_rows_for_box_export_with_pending(pallet_nr)
+
+
+def flatten_rows_for_box_export_with_pending(pallet_nr, pending_box_line=None):
+    rows = []
+    pallet_index = find_pallet_index_by_number(pallet_nr)
+    today_label = date.today().isoformat()
+    order_id = st.session_state.input_order_id.strip() or None
+    pallet = None
+    if pallet_index is not None:
+        pallet = st.session_state.pallets[pallet_index]
+
+    box_lines = []
+    if pallet is not None:
+        box_lines.extend(pallet["items"])
+    if pending_box_line is not None:
+        box_lines.append(pending_box_line)
+
+    if not box_lines:
+        return rows
+
+    pallet_nr_value = pallet["Pallet nr"] if pallet is not None else pallet_nr
+    weight_value = None
+    if pallet is not None:
+        weight_value = pallet.get("Weight kg")
+        if weight_value in ("", None, 0, 0.0):
+            weight_value = None
+
+    for box_index, box_line in enumerate(box_lines):
+        is_first_line = box_index == 0
+        rows.append(
             {
-                "Pallet nr": pallet["Pallet nr"],
-                "Length cm": pallet["Length cm"],
-                "Width cm": pallet["Width cm"],
-                "Height cm": pallet["Height cm"],
-                "Weight kg": pallet["Weight kg"],
-                "Pallet comment": pallet.get("Pallet comment", ""),
-                "Box numbers": box_line["Box numbers"],
+                "Box nr": pallet_nr_value if is_first_line else None,
+                "Weight kg": weight_value if is_first_line else None,
+                "Order ID": order_id if is_first_line else None,
                 "Pcs / box": box_line["Pcs / box"],
                 "Art. nr": box_line["Art. nr"],
-                "Comment": box_line["Comment"],
+                "Article name": box_line.get("Article name", ""),
+                "Date": today_label if is_first_line else None,
+                "Comment": box_line["Comment"] or None,
+                "Initials / name": st.session_state.input_operator_name.strip() if is_first_line else None,
             }
         )
 
     return rows
+
+
+def get_pending_box_line_state():
+    has_unsaved_box_input = any(
+        [
+            st.session_state.input_box_numbers.strip(),
+            st.session_state.input_pcs_per_box.strip(),
+            st.session_state.input_art_nr.strip(),
+            st.session_state.input_comment.strip(),
+        ]
+    )
+    if not has_unsaved_box_input:
+        return None, None, False
+
+    pending_box_line, error = get_validated_box_line_data()
+    if error:
+        return None, error, True
+
+    is_editing_existing_row = (
+        st.session_state.editing_index is not None and st.session_state.editing_box_index is not None
+    )
+    if is_editing_existing_row:
+        return None, None, False
+
+    existing_rows = flatten_rows_for_pallet(get_current_pallet_number())
+    for row in existing_rows:
+        if (
+            row["Box numbers"] == pending_box_line["Box numbers"]
+            and row["Pcs / box"] == pending_box_line["Pcs / box"]
+            and row["Art. nr"] == pending_box_line["Art. nr"]
+            and row.get("Article name", "") == pending_box_line.get("Article name", "")
+            and row["Comment"] == pending_box_line["Comment"]
+        ):
+            return None, None, False
+
+    return pending_box_line, None, True
 
 
 def normalize_pallets():
@@ -1010,7 +1207,25 @@ def normalize_pallets():
 
     for pallet in st.session_state.pallets:
         if "items" in pallet:
-            normalized.append(pallet)
+            normalized_items = []
+            for box_line in pallet["items"]:
+                normalized_items.append(
+                    {
+                        "Box numbers": box_line["Box numbers"],
+                        "Pcs / box": box_line["Pcs / box"],
+                        "Art. nr": box_line["Art. nr"],
+                        "Article name": box_line.get("Article name", ""),
+                        "Comment": box_line["Comment"],
+                    }
+                )
+
+            normalized.append(
+                {
+                    **pallet,
+                    "Pallet comment": pallet.get("Pallet comment", ""),
+                    "items": normalized_items,
+                }
+            )
             continue
 
         existing_index = None
@@ -1023,6 +1238,7 @@ def normalize_pallets():
             "Box numbers": pallet["Box numbers"],
             "Pcs / box": pallet["Pcs / box"],
             "Art. nr": pallet["Art. nr"],
+            "Article name": pallet.get("Article name", ""),
             "Comment": pallet["Comment"],
         }
 
@@ -1058,6 +1274,47 @@ def create_excel_file():
 
     output.seek(0)
     return output
+
+
+def create_box_excel_file(pallet_nr, pending_box_line=None):
+    df = pd.DataFrame(
+        flatten_rows_for_box_export_with_pending(pallet_nr, pending_box_line=pending_box_line),
+        columns=[
+            "Box nr",
+            "Weight kg",
+            "Order ID",
+            "Pcs / box",
+            "Art. nr",
+            "Article name",
+            "Date",
+            "Comment",
+            "Initials / name",
+        ],
+    )
+
+    output = BytesIO()
+    try:
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Boxes")
+    except ModuleNotFoundError as exc:
+        if exc.name == "openpyxl":
+            raise RuntimeError("Excel export requires the openpyxl package to be installed.") from exc
+        raise
+
+    output.seek(0)
+    return output
+
+
+def build_box_excel_filename(pallet_nr):
+    today_label = date.today().isoformat()
+    operator_name = st.session_state.input_operator_name.strip()
+    safe_operator_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "", operator_name).strip().rstrip(".")
+
+    filename = f"Box_{pallet_nr}_{today_label}"
+    if safe_operator_name:
+        filename = f"{filename}_{safe_operator_name}"
+
+    return f"{filename}.xlsx"
 
 
 def build_excel_filename():
@@ -1122,6 +1379,7 @@ def build_summary_text():
                 f"- Box {box_line['Box numbers']} | "
                 f"{box_line['Pcs / box']} pcs/box | "
                 f"Art. nr {box_line['Art. nr']}"
+                + (f" | {box_line.get('Article name', '')}" if box_line.get("Article name") else "")
                 + (f" | {box_line['Comment']}" if box_line["Comment"] else "")
             )
         lines.append("")
@@ -1227,6 +1485,12 @@ if not st.session_state.input_pallet_nr.strip():
 if st.session_state.editing_index is not None:
     st.session_state.entry_mode = "box"
 
+if is_box_order_mode():
+    st.session_state.entry_mode = "box"
+    st.session_state.editing_pallet_index = None
+    st.session_state.input_pallet_nr = "1"
+    st.session_state.active_pallet_nr = 1
+
 
 inject_styles()
 
@@ -1248,22 +1512,76 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.text_input(
-    "Initials / name",
-    placeholder="",
-    key="input_operator_name",
-)
+previous_order_type = st.session_state.order_type
+if is_box_order_mode():
+    identity_col1, identity_col2, identity_col3 = st.columns([1.1, 1.1, 1], gap="large")
+    with identity_col1:
+        st.text_input(
+            "Initials / name",
+            placeholder="",
+            key="input_operator_name",
+        )
+    with identity_col2:
+        st.text_input(
+            "Order ID",
+            placeholder="",
+            key="input_order_id",
+        )
+    with identity_col3:
+        st.radio(
+            "Order type",
+            options=["pallet", "box"],
+            format_func=lambda value: "Pallet order" if value == "pallet" else "Box order",
+            horizontal=True,
+            key="order_type",
+        )
+else:
+    identity_col1, identity_col2 = st.columns([1.25, 1], gap="large")
+    with identity_col1:
+        st.text_input(
+            "Initials / name",
+            placeholder="",
+            key="input_operator_name",
+        )
+    with identity_col2:
+        st.radio(
+            "Order type",
+            options=["pallet", "box"],
+            format_func=lambda value: "Pallet order" if value == "pallet" else "Box order",
+            horizontal=True,
+            key="order_type",
+        )
+
+handle_order_type_change(previous_order_type)
 
 overview_col1, overview_col2, overview_col3 = st.columns(3)
 with overview_col1:
-    summary_card("Pallets in list", len(st.session_state.pallets), "Current number of saved pallets")
+    summary_card(
+        "Pallets in list" if not is_box_order_mode() else "Orders in list",
+        len(st.session_state.pallets),
+        "Current number of saved pallets" if not is_box_order_mode() else "Current number of saved box orders",
+    )
 with overview_col2:
-    summary_card("Box rows in list", total_box_lines(), "Lines saved across all pallets")
+    summary_card(
+        "Box rows in list",
+        total_box_lines(),
+        "Lines saved across all pallets" if not is_box_order_mode() else "Lines saved across all box orders",
+    )
 with overview_col3:
-    summary_card("Total weight", f"{total_weight():.1f} kg", "Combined weight of all pallets")
+    summary_card(
+        "Total weight" if not is_box_order_mode() else "Total pieces",
+        f"{total_weight():.1f} kg" if not is_box_order_mode() else total_pcs(),
+        "Combined weight of all pallets" if not is_box_order_mode() else "Combined pieces across all box rows",
+    )
 
 st.markdown(
-    '<p class="section-note">Simple workflow: fill in the pallet, check the list, then download the Excel file.</p>',
+    '<p class="section-note">'
+    + (
+        "Simple workflow: add the box rows, finish pallet details, then download the Excel file."
+        if not is_box_order_mode()
+        else "Simple workflow: add the box rows and export the box order Excel file when it is ready."
+    )
+    + "</p>",
     unsafe_allow_html=True,
 )
 
@@ -1281,9 +1599,17 @@ with left_col:
         """
         <div class="side-panel">
             <div class="side-heading">Shipment Summary</div>
-            <div class="side-copy">Keep an eye on what is already added and export from here when the pallet work is done.</div>
+            <div class="side-copy">"""
+        + (
+            "Keep an eye on what is already added and export from here when the pallet work is done."
+            if not is_box_order_mode()
+            else "Keep an eye on what is already added and export the box order when it is ready."
+        )
+        + """</div>
             <div class="side-stat">
-                <strong>Pallets</strong>
+                <strong>"""
+        + ("Pallets" if not is_box_order_mode() else "Orders")
+        + """</strong>
                 <span>"""
         + str(len(st.session_state.pallets))
         + """ saved</span>
@@ -1313,21 +1639,22 @@ with left_col:
 
     if st.session_state.pallets:
         summary_text = build_summary_text()
-        try:
-            excel_file = create_excel_file()
-        except RuntimeError as exc:
-            st.warning(str(exc))
-            excel_file = None
+        if not is_box_order_mode():
+            try:
+                excel_file = create_excel_file()
+            except RuntimeError as exc:
+                st.warning(str(exc))
+                excel_file = None
 
-        if excel_file is not None:
-            st.download_button(
-                label="Download Excel file",
-                data=excel_file,
-                file_name=build_excel_filename(),
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                type="primary",
-                use_container_width=True,
-            )
+            if excel_file is not None:
+                st.download_button(
+                    label="Download Excel file",
+                    data=excel_file,
+                    file_name=build_excel_filename(),
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    type="primary",
+                    use_container_width=True,
+                )
 
         st.download_button(
             label="Download summary text",
@@ -1346,82 +1673,88 @@ with left_col:
                 label_visibility="collapsed",
             )
 
-        st.markdown(
-            """
-            <div class="side-panel">
-                <div class="side-heading">Pallet Overview</div>
-                <div class="side-copy">Quick scan of what has been entered so far.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        for pallet in st.session_state.pallets:
+        if not is_box_order_mode():
             st.markdown(
-                f"""
-                <div class="pallet-chip">
-                    <div class="pallet-chip-title">Pallet {pallet['Pallet nr']}</div>
-                    <div class="pallet-chip-copy">
-                        {pallet['Length cm']} x {pallet['Width cm']} x {pallet['Height cm']} cm |
-                        {pallet['Weight kg']} kg |
-                        {len(pallet['items'])} box rows
-                    </div>
-                    <div class="pallet-chip-copy">
-                        {pallet.get('Pallet comment', '-') or '-'}
-                    </div>
+                """
+                <div class="side-panel">
+                    <div class="side-heading">Pallet Overview</div>
+                    <div class="side-copy">Quick scan of what has been entered so far.</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+
+            for pallet in st.session_state.pallets:
+                st.markdown(
+                    f"""
+                    <div class="pallet-chip">
+                        <div class="pallet-chip-title">Pallet {pallet['Pallet nr']}</div>
+                        <div class="pallet-chip-copy">
+                            {pallet['Length cm']} x {pallet['Width cm']} x {pallet['Height cm']} cm |
+                            {pallet['Weight kg']} kg |
+                            {len(pallet['items'])} box rows
+                        </div>
+                        <div class="pallet-chip-copy">
+                            {pallet.get('Pallet comment', '-') or '-'}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
     else:
         st.info("The export buttons will appear here after the first pallet is added.")
 
 with right_col:
     list_container = st.container(border=True)
     with list_container:
-        st.subheader("Saved pallets")
+        st.subheader("Saved pallets" if not is_box_order_mode() else "Saved box rows")
 
         if st.session_state.pallets:
-            st.caption("Each pallet keeps its shared details once, with the box rows stored underneath.")
+            st.caption(
+                "Each pallet keeps its shared details once, with the box rows stored underneath."
+                if not is_box_order_mode()
+                else "Review the saved box rows here."
+            )
 
             for i, pallet in enumerate(st.session_state.pallets):
                 title = (
                     f"Pallet {pallet['Pallet nr']} | "
                     f"{pallet['Length cm']} x {pallet['Width cm']} x {pallet['Height cm']} cm | "
                     f"{len(pallet['items'])} box rows"
-                )
+                ) if not is_box_order_mode() else f"Box order | {len(pallet['items'])} box rows"
 
                 with st.expander(title, expanded=False):
-                    info_col1, info_col2, info_col3 = st.columns(3)
+                    if not is_box_order_mode():
+                        info_col1, info_col2, info_col3 = st.columns(3)
 
-                    with info_col1:
-                        st.markdown("**Pallet size**")
-                        st.write(f"{pallet['Length cm']} x {pallet['Width cm']} x {pallet['Height cm']} cm")
+                        with info_col1:
+                            st.markdown("**Pallet size**")
+                            st.write(f"{pallet['Length cm']} x {pallet['Width cm']} x {pallet['Height cm']} cm")
 
-                    if not is_standard_pallet_size(pallet["Length cm"], pallet["Width cm"]):
-                        st.markdown(
-                            pallet_size_notice_markup(pallet["Length cm"], pallet["Width cm"]),
-                            unsafe_allow_html=True,
-                        )
+                        if not is_standard_pallet_size(pallet["Length cm"], pallet["Width cm"]):
+                            st.markdown(
+                                pallet_size_notice_markup(pallet["Length cm"], pallet["Width cm"]),
+                                unsafe_allow_html=True,
+                            )
 
-                    with info_col2:
-                        st.markdown("**Weight**")
-                        st.write(f"{pallet['Weight kg']} kg")
+                        with info_col2:
+                            st.markdown("**Weight**")
+                            st.write(f"{pallet['Weight kg']} kg")
 
-                with info_col3:
-                    st.markdown("**Pallet nr**")
-                    st.write(pallet["Pallet nr"])
+                        with info_col3:
+                            st.markdown("**Pallet nr**")
+                            st.write(pallet["Pallet nr"])
 
-                st.markdown("**Pallet comment**")
-                st.write(pallet.get("Pallet comment", "") or "-")
+                        st.markdown("**Pallet comment**")
+                        st.write(pallet.get("Pallet comment", "") or "-")
 
-                action_head_col1, action_head_col2 = st.columns(2)
-                with action_head_col1:
-                    if st.button("Edit pallet", key=f"edit_pallet_{i}", use_container_width=True):
-                        load_pallet_details_for_edit(i)
-                        persist_and_rerun()
-                with action_head_col2:
-                    st.write("")
+                        action_head_col1, action_head_col2 = st.columns(2)
+                        with action_head_col1:
+                            if st.button("Edit pallet", key=f"edit_pallet_{i}", use_container_width=True):
+                                load_pallet_details_for_edit(i)
+                                persist_and_rerun()
+                        with action_head_col2:
+                            st.write("")
 
                 st.markdown("**Box rows**")
 
@@ -1439,6 +1772,8 @@ with right_col:
                     with row_col3:
                         st.markdown("**Art. nr**")
                         st.write(box_line["Art. nr"])
+                        if box_line.get("Article name"):
+                            st.caption(box_line["Article name"])
 
                     with row_col4:
                         st.markdown("**Comment**")
@@ -1458,7 +1793,11 @@ with right_col:
 
                     st.divider()
 
-                if st.button("Remove whole pallet", key=f"delete_pallet_{i}", use_container_width=True):
+                if st.button(
+                    "Remove whole pallet" if not is_box_order_mode() else "Clear saved box rows",
+                    key=f"delete_pallet_{i}",
+                    use_container_width=True,
+                ):
                     st.session_state.pallets.pop(i)
                     clear_form()
                     persist_and_rerun()
@@ -1472,89 +1811,121 @@ with right_col:
 
         if st.session_state.entry_mode == "box":
             if st.session_state.editing_index is None:
-                st.subheader(f"Add box rows to pallet {current_pallet_nr}")
-                st.caption("This step only shows box rows. When the pallet is finished, switch to pallet details.")
+                st.subheader(
+                    f"Add box rows to pallet {current_pallet_nr}"
+                    if not is_box_order_mode()
+                    else "Add box rows"
+                )
+                st.caption(
+                    "This step only shows box rows. When the pallet is finished, switch to pallet details."
+                    if not is_box_order_mode()
+                    else "This mode only uses box rows. Pallet details are hidden."
+                )
             else:
-                st.subheader(f"Edit box row on pallet {current_pallet_nr}")
-                st.caption("Update the selected row here. Pallet details stay in their own separate step.")
+                st.subheader(
+                    f"Edit box row on pallet {current_pallet_nr}"
+                    if not is_box_order_mode()
+                    else "Edit box row"
+                )
+                st.caption(
+                    "Update the selected row here. Pallet details stay in their own separate step."
+                    if not is_box_order_mode()
+                    else "Update the selected box row here."
+                )
 
+            workflow_markup = '<div class="workflow-band"><div class="workflow-pill">1. Add all box rows</div>'
+            if not is_box_order_mode():
+                workflow_markup += (
+                    '<div class="workflow-pill">2. Switch to pallet details</div>'
+                    '<div class="workflow-pill">3. Save and move to the next pallet</div>'
+                )
+            else:
+                workflow_markup += (
+                    '<div class="workflow-pill">2. Review the box order</div>'
+                    '<div class="workflow-pill">3. Export the box Excel file</div>'
+                )
+            workflow_markup += "</div>"
+            st.markdown(workflow_markup, unsafe_allow_html=True)
+
+            preview_lines = []
+            if not is_box_order_mode():
+                preview_lines.append(f"Working on pallet {current_pallet_nr}")
+            preview_lines.append(f"Box rows already added: {total_box_lines_for_pallet(current_pallet_nr)}")
+            preview_lines.append(
+                f"Next box suggestion: {st.session_state.input_box_numbers or 'Start with the first box row'}"
+            )
+            preview_value_markup = "<br>".join(preview_lines)
             st.markdown(
-                """
-                <div class="workflow-band">
-                    <div class="workflow-pill">1. Add all box rows</div>
-                    <div class="workflow-pill">2. Switch to pallet details</div>
-                    <div class="workflow-pill">3. Save and move to the next pallet</div>
-                </div>
-                """,
+                (
+                    '<div class="preview-panel">'
+                    '<div class="preview-label">Current Box Step</div>'
+                    f'<div class="preview-value">{preview_value_markup}</div>'
+                    "</div>"
+                ),
                 unsafe_allow_html=True,
             )
 
-            st.markdown(
-                f"""
-                <div class="preview-panel">
-                    <div class="preview-label">Current Box Step</div>
-                    <div class="preview-value">
-                        Working on pallet {current_pallet_nr}<br>
-                        Box rows already added: {total_box_lines_for_pallet(current_pallet_nr)}<br>
-                        Next box suggestion: {st.session_state.input_box_numbers or "Start with the first box row"}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+            st.markdown("#### Box details")
+            detail_col1, detail_col2, detail_col3 = st.columns(3)
+
+            with detail_col1:
+                st.text_input(
+                    "Box numbers",
+                    placeholder="Example: 1-5 or 1,2,3,8-10",
+                    key="input_box_numbers",
+                )
+
+            with detail_col2:
+                st.text_input(
+                    "Pcs / box",
+                    placeholder="Example: 20",
+                    key="input_pcs_per_box",
+                )
+
+            with detail_col3:
+                st.text_input(
+                    "Art. nr",
+                    placeholder="Example: 12345",
+                    key="input_art_nr",
+                )
+
+            current_article_name, article_lookup_message, article_lookup_tone = get_article_name_state(
+                st.session_state.input_art_nr,
+                fallback_name=get_saved_article_name_for_current_row(),
+            )
+            st.text_input(
+                "Article name",
+                value=current_article_name,
+                placeholder="Filled automatically from Lark",
+                disabled=True,
+            )
+            if article_lookup_message:
+                st.markdown(
+                    article_lookup_note_markup(article_lookup_message, article_lookup_tone),
+                    unsafe_allow_html=True,
+                )
+
+            st.text_area(
+                "Comment / note",
+                placeholder="Optional information for the warehouse or booking",
+                key="input_comment",
             )
 
-            with st.form("box_form"):
-                st.markdown("#### Box details")
-                detail_col1, detail_col2, detail_col3 = st.columns(3)
+            primary_label = "Add box row"
+            if st.session_state.editing_index is not None:
+                primary_label = "Save changes"
 
-                with detail_col1:
-                    st.text_input(
-                        "Box numbers",
-                        placeholder="Example: 1-5 or 1,2,3,8-10",
-                        key="input_box_numbers",
+            if st.button(primary_label, type="primary", use_container_width=True, key="submit_box_row_button"):
+                pallet_data, error = get_validated_form_data()
+                if error:
+                    st.warning(error)
+                else:
+                    save_pallet(
+                        pallet_data,
+                        st.session_state.editing_index,
+                        st.session_state.editing_box_index,
                     )
-
-                with detail_col2:
-                    st.text_input(
-                        "Pcs / box",
-                        placeholder="Example: 20",
-                        key="input_pcs_per_box",
-                    )
-
-                with detail_col3:
-                    st.text_input(
-                        "Art. nr",
-                        placeholder="Example: 12345",
-                        key="input_art_nr",
-                    )
-
-                st.text_area(
-                    "Comment / note",
-                    placeholder="Optional information for the warehouse or booking",
-                    key="input_comment",
-                )
-
-                primary_label = "Add box row"
-                if st.session_state.editing_index is not None:
-                    primary_label = "Save changes"
-
-                submitted = st.form_submit_button(
-                    primary_label,
-                    type="primary",
-                    use_container_width=True,
-                )
-
-                if submitted:
-                    pallet_data, error = get_validated_form_data()
-                    if error:
-                        st.warning(error)
-                    else:
-                        save_pallet(
-                            pallet_data,
-                            st.session_state.editing_index,
-                            st.session_state.editing_box_index,
-                        )
-                        persist_and_rerun()
+                    persist_and_rerun()
 
             if st.button("Clear box fields", use_container_width=True, key="clear_box_fields_button"):
                 st.session_state.pending_pallet_details = capture_pallet_detail_inputs()
@@ -1562,16 +1933,48 @@ with right_col:
                 st.session_state.pending_clear_form = True
                 persist_and_rerun()
 
-            switch_col1, switch_col2 = st.columns([1, 1])
-            with switch_col1:
-                if st.button("Ready to add pallet details", type="primary", use_container_width=True):
-                    st.session_state.editing_pallet_index = find_pallet_index_by_number(current_pallet_nr)
-                    st.session_state.entry_mode = "pallet"
-                    st.session_state.refresh_pallet_form_widgets = True
-                    ensure_visible_pallet_defaults(current_pallet_nr)
-                    persist_and_rerun()
-            with switch_col2:
-                st.caption("Use this when all box rows for the current pallet are entered.")
+            pending_box_line, pending_box_error, has_pending_box_input = get_pending_box_line_state()
+            current_box_rows = flatten_rows_for_box_export_with_pending(
+                current_pallet_nr,
+                pending_box_line=pending_box_line,
+            )
+            box_excel_file = None
+            if current_box_rows:
+                try:
+                    box_excel_file = create_box_excel_file(current_pallet_nr, pending_box_line=pending_box_line)
+                except RuntimeError as exc:
+                    st.warning(str(exc))
+
+            if is_box_order_mode():
+                export_clicked = st.download_button(
+                    label="Export box order Excel",
+                    data=box_excel_file if box_excel_file is not None else b"",
+                    file_name=build_box_excel_filename(current_pallet_nr),
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                    disabled=box_excel_file is None,
+                )
+                if export_clicked and pending_box_line is not None:
+                    pallet_header, header_error = get_validated_pallet_header_data()
+                    if header_error is None:
+                        save_pallet(
+                            {**pallet_header, **pending_box_line},
+                            st.session_state.editing_index,
+                            st.session_state.editing_box_index,
+                        )
+                        persist_session_state()
+                st.caption("Use this when all box rows for the order are entered.")
+            else:
+                switch_col1, switch_col2 = st.columns([1, 1])
+                with switch_col1:
+                    if st.button("Ready to add pallet details", type="primary", use_container_width=True):
+                        st.session_state.editing_pallet_index = find_pallet_index_by_number(current_pallet_nr)
+                        st.session_state.entry_mode = "pallet"
+                        st.session_state.refresh_pallet_form_widgets = True
+                        ensure_visible_pallet_defaults(current_pallet_nr)
+                        persist_and_rerun()
+                with switch_col2:
+                    st.caption("Use this when all box rows for the current pallet are entered.")
 
         else:
             initialize_pallet_form_widgets(current_pallet_nr)
@@ -1688,8 +2091,12 @@ with right_col:
             review_pallet_nr = get_current_pallet_number()
             review_rows = flatten_rows_for_pallet(review_pallet_nr)
 
-            st.subheader("Current Pallet Review")
-            st.caption(f"Review for current pallet {review_pallet_nr}. When you move to the next pallet, this list starts empty.")
+            st.subheader("Current Pallet Review" if not is_box_order_mode() else "Current Box Order Review")
+            st.caption(
+                f"Review for current pallet {review_pallet_nr}. When you move to the next pallet, this list starts empty."
+                if not is_box_order_mode()
+                else "Review for the current box order."
+            )
 
             if review_rows:
                 df = pd.DataFrame(review_rows)
