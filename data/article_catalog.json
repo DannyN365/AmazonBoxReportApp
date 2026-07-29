@@ -1251,6 +1251,7 @@
     "74839": "Xiaomi UltraThin Magnetic Power Bank 5000 15W Graphite Black",
     "75524": "Xiaomi Watch S5 46mm Jungle Green Demo",
     "75526": "Xiaomi Watch S5 46mm Ceramic Blue Demo",
+    "75763": "Xiaomi Mijia Refrigerator Side-by-Side 621L",
     "75789": "Xiaomi Pad 8 Gray 8G RAM 128G ROM LDU",
     "75847": "Xiaomi Gaming Monitor G25i 2026-EU",
     "75971": "Xiaomi 17T Black 12GB RAM 256GB ROM",
@@ -1337,7 +1338,6 @@
     "A001120000": "Clean water tank for X Ultra",
     "A001190000": "Swivel caster module for X Ultra\\ X Plus",
     "A012820000": "Crawler mop bracket for Flow",
-    "A012840000": "Main Brush for Flow",
     "C015550055700": "Water&Dust Tank Assembly - Robot Vacuum E10",
     "SP000001": "Ulefone usb to usb-c cable (red)",
     "SP0000019": "Screen protection Armor 23 tempered glass protector",
@@ -1960,7 +1960,7 @@
     "T901254": "UREVO Wireless Recovery Boots Standard"
   },
   "catalog_count": 1956,
-  "generated_at": "2026-07-29T02:57:52.397855+00:00",
+  "generated_at": "2026-07-29T14:20:44.642924+00:00",
   "record_count": 1956,
   "source_type": "bitable"
 }
