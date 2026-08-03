@@ -834,10 +834,12 @@
     "60217": "Xiaomi Leather Quick Release Strap Harbor Blue",
     "60219": "Xiaomi Magnetic Quick Release Strap Khaki Brown",
     "60309": "Xiaomi Electric Shaver S200 Gray EU",
+    "60311": "Xiaomi Smart Audio Glasses",
     "60312": "Xiaomi Electric Shaver S200 Silver EU",
     "60313": "Xiaomi Electric Shaver S200 Replacement Head Gray",
     "60315": "Xiaomi Electric Shaver S200 Replacement Head Silver",
     "60316": "Xiaomi Ultra Slim Power Bank 5000mAh GL",
+    "60318": "Xiaomi Smart Audio Glasses Replacement Kit",
     "60320": "Xiaomi Electric Kettle S1 EU",
     "60321": "Xiaomi Straw Mug",
     "60362": "Xiaomi Router BE3600 2.5G EU",
@@ -1323,6 +1325,7 @@
     "79119": "Xiaomi Buds 6 Graphite Black LDU",
     "79120": "Xiaomi Buds 6 Nebula Purple LDU",
     "79121": "Xiaomi Buds 6 Nebula Purple Dummy",
+    "79213": "Xiaomi Smart Camera C401 GL",
     "79232": "REDMI Pad 2 Mint Green 4G RAM 256G ROM",
     "79239": "REDMI Pad 2 Graphite Gray 4G RAM 256G ROM",
     "79478": "REDMI Buds 8 White Dummy",
@@ -1959,8 +1962,8 @@
     "T900745": "UREVO Foldi Mini 2 Black",
     "T901254": "UREVO Wireless Recovery Boots Standard"
   },
-  "catalog_count": 1956,
-  "generated_at": "2026-08-03T03:24:48.430217+00:00",
-  "record_count": 1956,
+  "catalog_count": 1959,
+  "generated_at": "2026-08-03T14:48:56.570885+00:00",
+  "record_count": 1959,
   "source_type": "bitable"
 }
