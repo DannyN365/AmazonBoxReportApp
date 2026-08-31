@@ -1337,6 +1337,12 @@
     "79899": "Xiaomi Sound Play 18W (Purple)",
     "79901": "Xiaomi Sound Play 18W (Green)",
     "79903": "Xiaomi Sound Play 18W (White)",
+    "80026": "Xiaomi Mijia Vacuum Cleaner 4 Pro/4 Max Filter Kit",
+    "80027": "Xiaomi Mijia Vacuum Cleaner 4 Max Dust Bag Kit",
+    "80028": "Xiaomi Mijia Vacuum Cleaner 4 Pro/4 Max Battery",
+    "80034": "Xiaomi Mijia Vacuum Cleaner 4 C Filter Kit",
+    "80060": "Xiaomi Mijia Vacuum Cleaner 4 Filter Kit",
+    "80061": "Xiaomi Mijia Vacuum Cleaner 4 Battery",
     "80844": "REDMI Note 17 Pro 5G Purple 6G RAM 256G ROM",
     "80902": "REDMI Note 17 Pro 5G Black 6G RAM 256G ROM",
     "80994": "REDMI Note 17 Pro 5G Sky Blue 6G RAM 256G ROM",
@@ -1996,8 +2002,8 @@
     "T900745": "UREVO Foldi Mini 2 Black",
     "T901254": "UREVO Wireless Recovery Boots Standard"
   },
-  "catalog_count": 1993,
-  "generated_at": "2026-08-31T04:43:23.203209+00:00",
-  "record_count": 1993,
+  "catalog_count": 1999,
+  "generated_at": "2026-08-31T18:59:13.889334+00:00",
+  "record_count": 1999,
   "source_type": "bitable"
 }
