@@ -1394,6 +1394,7 @@
     "A001120000": "Clean water tank for X Ultra",
     "A001190000": "Swivel caster module for X Ultra\\ X Plus",
     "A012820000": "Crawler mop bracket for Flow",
+    "A013050000": "Floor frame component-White for Flow",
     "C015550055700": "Water&Dust Tank Assembly - Robot Vacuum E10",
     "SP000001": "Ulefone usb to usb-c cable (red)",
     "SP0000019": "Screen protection Armor 23 tempered glass protector",
@@ -2033,8 +2034,8 @@
     "T900745": "UREVO Foldi Mini 2 Black",
     "T901254": "UREVO Wireless Recovery Boots Standard"
   },
-  "catalog_count": 2030,
-  "generated_at": "2026-09-23T04:05:05.495347+00:00",
-  "record_count": 2030,
+  "catalog_count": 2031,
+  "generated_at": "2026-09-23T16:29:36.372110+00:00",
+  "record_count": 2031,
   "source_type": "bitable"
 }
