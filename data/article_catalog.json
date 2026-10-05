@@ -1282,6 +1282,7 @@
     "76066": "Xiaomi Smart Band 10 Pro Ceramic Edition Pearl White",
     "76067": "Xiaomi Smart Band 10 Pro NFC Glacier Silver",
     "76074": "Xiaomi Smart Camera C701 Pro EU",
+    "76079": "Xiaomi UltraThin Magnetic Power Bank 10000 25W GL Velvet Red",
     "76206": "Xiaomi 100W Charging Combo (Type-A) EU",
     "76257": "Xiaomi Mijia Electric Wine Opener",
     "76487": "Xiaomi 17T Pro Black 12GB RAM 512GB ROM",
@@ -1399,6 +1400,8 @@
     "82814": "REDMI Note 17 5G Black 6G RAM 128G ROM",
     "82843": "REDMI Note 17 5G Celestial Purple 6G RAM 128G ROM",
     "82846": "REDMI Note 17 5G Sky Teal 6G RAM 128G ROM",
+    "83079": "Xiaomi Mijia Electric Shaver EU Light Blue",
+    "83080": "Xiaomi Mijia Electric Shaver EU Dark Gray",
     "84627": "Xiaomi Robot Vacuum 6 Brush Cover",
     "84693": "Xiaomi UltraThin Magnetic Power Bank 10000 25W GL Graphite Black",
     "84694": "Xiaomi UltraThin Magnetic Power Bank 10000 25W GL Glacier Silver",
@@ -1409,6 +1412,9 @@
     "89928": "Xiaomi Clip - Graphite Black",
     "90254": "Xiaomi Smart Band 11 Moon Gold",
     "90256": "Xiaomi Braided Strap Lavender Purple",
+    "91315": "Xiaomi Mijia Electric Shaver Replacement Head Light Blue",
+    "91316": "Xiaomi Mijia Electric Shaver Replacement Head Darl Grey",
+    "92051": "Xiaomi UltraThin Magnetic Power Bank 10000 25W GL Burgundy Red",
     "A000450000": "Dirty water tank for X Ultra",
     "A001120000": "Clean water tank for X Ultra",
     "A001190000": "Swivel caster module for X Ultra\\ X Plus",
@@ -2079,8 +2085,8 @@
     "T900745": "UREVO Foldi Mini 2 Black",
     "T901254": "UREVO Wireless Recovery Boots Standard"
   },
-  "catalog_count": 2076,
-  "generated_at": "2026-10-04T16:41:46.699547+00:00",
-  "record_count": 2076,
+  "catalog_count": 2082,
+  "generated_at": "2026-10-05T04:53:43.210793+00:00",
+  "record_count": 2082,
   "source_type": "bitable"
 }
