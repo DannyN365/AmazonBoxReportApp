@@ -1609,10 +1609,13 @@
     "T400592": "InFace ION Hairbrush (Black)",
     "T400608": "InFace ION Hairbrush (Green)",
     "T400653": "InFace Blackhead Remover (White)",
+    "T403043": "Creality Filament Ender PLA+ (White)",
     "T403050": "Creality Filament Ender PLA+ (Black)",
     "T403623": "Creality FDM 3D Printer Ender-3 V3 SE",
     "T405238": "Creality 3D Scanner CR-Scan Ferret Pro",
+    "T405344": "Creality Filament CR-PETG (Black)",
     "T405719": "Creality FDM 3D Printer K2 Plus Combo",
+    "T409380": "Creality Filament CR-PETG (White)",
     "T427396": "Realme SUPERVOOC 67W Power Adapter white EU",
     "T428546": "Realme SUPERVOOC 45W Power Adapter white EU",
     "T428744": "Realme Buds T110 Punk Black EU",
@@ -2085,8 +2088,8 @@
     "T900745": "UREVO Foldi Mini 2 Black",
     "T901254": "UREVO Wireless Recovery Boots Standard"
   },
-  "catalog_count": 2082,
-  "generated_at": "2026-10-07T18:41:39.706494+00:00",
-  "record_count": 2082,
+  "catalog_count": 2085,
+  "generated_at": "2026-10-08T05:22:01.182217+00:00",
+  "record_count": 2085,
   "source_type": "bitable"
 }
