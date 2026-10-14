@@ -1191,6 +1191,7 @@
     "72084": "Xiaomi Pad 8 Pro Blue 8G RAM 256G ROM",
     "72105": "Xiaomi Pad 8 Pro Gray 8G RAM 256G ROM",
     "72160": "REDMI Note 15 Black 6GB RAM 128GB ROM",
+    "72195": "Xiaomi Pad 8 Pro Blue 12GB RAM 512GB ROM",
     "72207": "Xiaomi Pad 8 Pro Pine Green 12G RAM 512G ROM",
     "72298": "Xiaomi Electric Scooter 6 Max GL",
     "72302": "Xiaomi Electric Scooter 6 Max EU",
@@ -2088,8 +2089,8 @@
     "T900745": "UREVO Foldi Mini 2 Black",
     "T901254": "UREVO Wireless Recovery Boots Standard"
   },
-  "catalog_count": 2085,
-  "generated_at": "2026-10-14T04:14:51.928787+00:00",
-  "record_count": 2085,
+  "catalog_count": 2086,
+  "generated_at": "2026-10-14T16:52:08.248910+00:00",
+  "record_count": 2086,
   "source_type": "bitable"
 }
