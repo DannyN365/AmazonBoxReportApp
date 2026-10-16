@@ -1253,6 +1253,7 @@
     "73676": "Xiaomi Smart Band 10 Pro Midnight Black",
     "73678": "Xiaomi Smart Band 10 Pro Glacier Silver",
     "73683": "Xiaomi Smart Band 10 Pro Lavender pink",
+    "73704": "Xiaomi Robot Vacuum 6 Pro EU",
     "73995": "Xiaomi Mijia Smart Air Purifier Max Filter",
     "73997": "Xiaomi Mijia Smart Air Purifier Max EU",
     "74074": "REDMI Note 15 Black 6GB RAM 128GB ROM LDU",
@@ -1419,6 +1420,7 @@
     "A000450000": "Dirty water tank for X Ultra",
     "A001120000": "Clean water tank for X Ultra",
     "A001190000": "Swivel caster module for X Ultra\\ X Plus",
+    "A012600000": "Floor lifting component for Flow compact station",
     "A012820000": "Crawler mop bracket for Flow",
     "A013050000": "Floor frame component-White for Flow",
     "C015550055700": "Water&Dust Tank Assembly - Robot Vacuum E10",
@@ -2089,8 +2091,8 @@
     "T900745": "UREVO Foldi Mini 2 Black",
     "T901254": "UREVO Wireless Recovery Boots Standard"
   },
-  "catalog_count": 2086,
-  "generated_at": "2026-10-16T03:54:13.424609+00:00",
-  "record_count": 2086,
+  "catalog_count": 2088,
+  "generated_at": "2026-10-16T16:22:12.354248+00:00",
+  "record_count": 2088,
   "source_type": "bitable"
 }
