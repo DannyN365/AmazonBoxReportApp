@@ -1399,6 +1399,7 @@
     "82376": "REDMI 17 Deep Blue 4G RAM 128G ROM",
     "82477": "REDMI 17 Deep Blue 4G RAM 256G ROM",
     "82628": "Xiaomi Robot Vacuum 6 Roller Mop Pad",
+    "82653": "Xiaomi Sound Max 150W PS7U (Black)",
     "82814": "REDMI Note 17 5G Black 6G RAM 128G ROM",
     "82843": "REDMI Note 17 5G Celestial Purple 6G RAM 128G ROM",
     "82846": "REDMI Note 17 5G Sky Teal 6G RAM 128G ROM",
@@ -1407,6 +1408,9 @@
     "84627": "Xiaomi Robot Vacuum 6 Brush Cover",
     "84693": "Xiaomi UltraThin Magnetic Power Bank 10000 25W GL Graphite Black",
     "84694": "Xiaomi UltraThin Magnetic Power Bank 10000 25W GL Glacier Silver",
+    "86563": "Xiaomi Monitor A27Ui 2027 PM8UF-EU",
+    "87224": "Xiaomi Mijia Portable Coffee Machine Gray EU",
+    "87818": "Xiaomi Mijia Water Flosser 2 Portable EU",
     "888299": "Ulefone 18W Quick Charger",
     "89923": "Xiaomi Clip - Frost Purple",
     "89924": "Xiaomi Clip - Sand Gold",
@@ -2091,8 +2095,8 @@
     "T900745": "UREVO Foldi Mini 2 Black",
     "T901254": "UREVO Wireless Recovery Boots Standard"
   },
-  "catalog_count": 2088,
-  "generated_at": "2026-10-20T04:12:38.715060+00:00",
-  "record_count": 2088,
+  "catalog_count": 2092,
+  "generated_at": "2026-10-20T16:36:26.889159+00:00",
+  "record_count": 2092,
   "source_type": "bitable"
 }
