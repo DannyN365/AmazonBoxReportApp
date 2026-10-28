@@ -2047,6 +2047,7 @@
     "T781392": "70mai Hardwire Kit",
     "T781897": "70mai External GPS Module",
     "T783532": "70mai RC14 Rear Camera",
+    "T784096": "70mai Omni X800 Black",
     "T784478": "70mai RC24 Rear Camera",
     "T784676": "70mai RC21 Rear Camera",
     "T784683": "70mai RC22 Rear Camera",
@@ -2063,6 +2064,7 @@
     "T785079": "70mai OBD-II Hardwire Kit",
     "T785369": "70mai Dash Cam M310 2K",
     "T785482": "70mai Jump Starter 2",
+    "T786397": "70mai Dash Cam A800SE 4G",
     "T786491": "Yeelight Staria Bedside Lamp Pro",
     "T786514": "Yeelight Smart LED Filament Bulb (ST64)",
     "T786521": "Yeelight Gateway (BLE Mesh)",
@@ -2135,8 +2137,8 @@
     "T900745": "UREVO Foldi Mini 2 Black",
     "T901254": "UREVO Wireless Recovery Boots Standard"
   },
-  "catalog_count": 2132,
-  "generated_at": "2026-10-28T04:54:03.763748+00:00",
-  "record_count": 2132,
+  "catalog_count": 2134,
+  "generated_at": "2026-10-28T18:09:03.515304+00:00",
+  "record_count": 2134,
   "source_type": "bitable"
 }
