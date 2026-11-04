@@ -1367,6 +1367,8 @@
     "79119": "Xiaomi Buds 6 Graphite Black LDU",
     "79120": "Xiaomi Buds 6 Nebula Purple LDU",
     "79121": "Xiaomi Buds 6 Nebula Purple Dummy",
+    "79188": "Xiaomi Magnetic Power Bank 10000 25W (Integrated Cable) Gray",
+    "79189": "Xiaomi Magnetic Power Bank 10000 25W (Integrated Cable) White",
     "79213": "Xiaomi Smart Camera C401 GL",
     "79232": "REDMI Pad 2 Mint Green 4G RAM 256G ROM",
     "79239": "REDMI Pad 2 Graphite Gray 4G RAM 256G ROM",
@@ -2143,10 +2145,13 @@
     "T900622": "UREVO Spacewalk E1L walking treadmill",
     "T900738": "UREVO CyberMega",
     "T900745": "UREVO Foldi Mini 2 Black",
-    "T901254": "UREVO Wireless Recovery Boots Standard"
+    "T901254": "UREVO Wireless Recovery Boots Standard",
+    "T901605": "UREVO Viberation Plate P6 Grey",
+    "T901612": "UREVO PowerStation White",
+    "T901629": "UREVO PowerStation Brown"
   },
-  "catalog_count": 2142,
-  "generated_at": "2026-11-04T05:35:54.213981+00:00",
-  "record_count": 2142,
+  "catalog_count": 2147,
+  "generated_at": "2026-11-04T19:34:11.307427+00:00",
+  "record_count": 2147,
   "source_type": "bitable"
 }
