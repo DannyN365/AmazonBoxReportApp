@@ -1971,6 +1971,7 @@
     "T736488": "Narwal Flow/ Flow compact station Anti-Tangle Side Brush",
     "T736495": "Narwal Flow/ Flow compact station Base station replaceable filter",
     "T736501": "Narwal Flow/ Flow compact station Anti-Tangle Roller Brush",
+    "T736587": "Narwal Freo 20 Edge Robot Vacuum and Mop",
     "T737140": "Narwal Freo S side brush",
     "T737157": "Narwal Freo S MOP",
     "T737164": "Narwal Freo S Filter",
@@ -1981,6 +1982,7 @@
     "T737287": "Narwal Accessories pack of Flow",
     "T737508": "Narwal Freo X10 Pro Anti-tangling Side Brush",
     "T737515": "Narwal Freo X10 Pro Replaceable cleaning filter",
+    "T737713": "Narwal Freo 20 Robot Vacuum and Mop",
     "T738536": "Narwal Flow 2 Robot Vacuum and Mop Black",
     "T740215": "Creality Filament Hyper PLA RFID (Green)",
     "T740253": "Creality Filament Hyper PLA RFID (Grey)",
@@ -2150,8 +2152,8 @@
     "T901612": "UREVO PowerStation White",
     "T901629": "UREVO PowerStation Brown"
   },
-  "catalog_count": 2147,
-  "generated_at": "2026-11-15T05:41:05.055056+00:00",
-  "record_count": 2147,
+  "catalog_count": 2149,
+  "generated_at": "2026-11-16T21:49:15.573305+00:00",
+  "record_count": 2149,
   "source_type": "bitable"
 }
