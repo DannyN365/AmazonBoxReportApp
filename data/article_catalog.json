@@ -1445,9 +1445,13 @@
     "89928": "Xiaomi Clip - Graphite Black",
     "90254": "Xiaomi Smart Band 11 Moon Gold",
     "90256": "Xiaomi Braided Strap Lavender Purple",
+    "90769": "Xiaomi Magnetic Remote Stand - Silver",
+    "90771": "Xiaomi Magnetic Remote Stand - Black",
     "91315": "Xiaomi Mijia Electric Shaver Replacement Head Light Blue",
     "91316": "Xiaomi Mijia Electric Shaver Replacement Head Darl Grey",
     "92051": "Xiaomi UltraThin Magnetic Power Bank 10000 25W GL Burgundy Red",
+    "92057": "Xiaomi 18 Pro Silicone Magnetic Case",
+    "92058": "Xiaomi 18 Pro Max Silicone Magnetic Case",
     "A000450000": "Dirty water tank for X Ultra",
     "A001120000": "Clean water tank for X Ultra",
     "A001190000": "Swivel caster module for X Ultra\\ X Plus",
@@ -2168,8 +2172,8 @@
     "T901612": "UREVO PowerStation White",
     "T901629": "UREVO PowerStation Brown"
   },
-  "catalog_count": 2165,
-  "generated_at": "2026-11-19T20:16:53.181239+00:00",
-  "record_count": 2165,
+  "catalog_count": 2169,
+  "generated_at": "2026-11-20T19:48:52.111907+00:00",
+  "record_count": 2169,
   "source_type": "bitable"
 }
