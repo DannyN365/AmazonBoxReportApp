@@ -2075,7 +2075,6 @@
     "T780055": "Huvudborste Roborock/Mi Robot Vacuum",
     "T780142": "70mai Jump Starter MAX",
     "T780401": "70mai Air Compressor",
-    "T781385": "70mai 4G Hardwire Kit",
     "T781392": "70mai Hardwire Kit",
     "T781897": "70mai External GPS Module",
     "T783532": "70mai RC14 Rear Camera",
@@ -2094,6 +2093,7 @@
     "T785017": "70mai Dash Cam 4K A810S",
     "T785024": "70mai Dash Cam 4K A810S-2",
     "T785079": "70mai OBD-II Hardwire Kit",
+    "T785284": "70mai 4G Hardwire Kit",
     "T785369": "70mai Dash Cam M310 2K",
     "T785482": "70mai Jump Starter 2",
     "T786397": "70mai Dash Cam A800SE 4G",
@@ -2170,10 +2170,11 @@
     "T901254": "UREVO Wireless Recovery Boots Standard",
     "T901605": "UREVO Vibration Plate P6 Grey",
     "T901612": "UREVO PowerStation White",
-    "T901629": "UREVO PowerStation Brown"
+    "T901629": "UREVO PowerStation Brown",
+    "T901865": "UREVO Digital Strength W6"
   },
-  "catalog_count": 2169,
-  "generated_at": "2026-11-27T07:36:12.935672+00:00",
-  "record_count": 2169,
+  "catalog_count": 2170,
+  "generated_at": "2026-11-27T20:54:54.017594+00:00",
+  "record_count": 2170,
   "source_type": "bitable"
 }
